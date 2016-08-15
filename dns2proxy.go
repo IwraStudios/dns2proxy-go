@@ -8,6 +8,8 @@ import (
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
+	"C"
+	"encoding/binary"
 )
 
 //import "./pcap-master/pcap"
@@ -72,8 +74,18 @@ func ThreadGo(){
 func ThreadParsePacket(pack gopacket.Packet){
 	ipLayer := pack.Layer(layers.LayerTypeIPv4)
 	if ipLayer != nil {
-		ip_pack := pack.Layer(layers.LayerTypeIPv4).LayerContents()
-		ip_header := ip_pack[20]
+		ip, _ := ipLayer.(*layers.IPv4)
+		prot := ip.Protocol
+		version := ip.Version
+		length := ip.Length
+		tcp := pack.Layer(layers.LayerTypeTCP)
+		if tcp != nil {
+
+		}
+
+
+
+
 	}
 
 }
