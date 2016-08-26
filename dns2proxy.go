@@ -125,7 +125,18 @@ func GetLocalIPbyte() [4]byte{
 }
 
 func GetActiveInterface() string  {
-
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "" //Might want to change that in the future
+	}
+	for addr, address := range addrs {
+		// check the address type and if it is not a loopback the display it
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return addr.String()
+			}
+		}
+	}
 }
 
 func main() {
