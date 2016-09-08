@@ -246,8 +246,8 @@ def parse_packet(packet):
         #take first 20 characters for the ip header
         ip_header = packet[eth_length:20 + eth_length]
 
-        #now unpack them :)
-        iph = unpack('!BBHHHBBH4s4s', ip_header)
+        #now unpack t #ccsssccsS4S4
+        iph = unpack('!BBHHHBBH4s4s', ip_header) # order 1.version? ; 2.??? ; 3.!protocol! ; 4.? ; [8]s.addr ; [9].d.addr
 
         version_ihl = iph[0]
         #version = version_ihl >> 4
@@ -257,8 +257,8 @@ def parse_packet(packet):
 
         #ttl = iph[5]
         protocol = iph[6]
-        s_addr = socket.inet_ntoa(iph[8])
-        d_addr = socket.inet_ntoa(iph[9])
+        s_addr = socket.inet_ntoa(iph[8]) # source addr
+        d_addr = socket.inet_ntoa(iph[9]) # dest addr
 
 
 
