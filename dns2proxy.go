@@ -143,6 +143,10 @@ func main() {
 	StartMain()
 }
 
+func DebugPrint(log string){
+	PrintLn(log)
+}
+
 func StartMain(){
 	processfiles()
 	println("hello")
