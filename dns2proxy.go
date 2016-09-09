@@ -9,6 +9,7 @@ import (
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/layers"
 	"C"
+	"os/exec"
 )
 
 //import "./pcap-master/pcap"
@@ -36,6 +37,7 @@ var s []string
 var sockad syscall.SockaddrInet4
 var ip1 string= "None"
 var adminip string = "192.168.0.1"
+var noserv bool = false
 
 func processfiles() {
 	var a net.IP = []byte{74, 125, 136, 108} //Original Contents of nospooffile
@@ -63,23 +65,40 @@ func ThreadGo(){
 		pack, err := packetSource.NextPacket()
 		if err != nil {
 			log.Fatal(err)
+		}else {
+			ThreadParsePacket(pack)
 		}
-		ThreadParsePacket(pack)
 
 
 	}
+}
+
+func IPinArray(a net.IP, list []net.IP) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }
 
 func ThreadParsePacket(pack gopacket.Packet){
 	ipLayer := pack.Layer(layers.LayerTypeIPv4)
 	if ipLayer != nil {
 		ip, _ := ipLayer.(*layers.IPv4)
+		tcp := ipLayer.(*layers.TCP)
 		prot := ip.Protocol
 		version := ip.Version
 		length := ip.Length
-		tcp := pack.Layer(layers.LayerTypeTCP)
+		dest_addr := ip.DstIP
+		sourc_addr := ip.SrcIP
+		sourc_port := tcp.SrcPort
+		dest_port := tcp.DstPort
 		if tcp != nil {
-			
+			//if IPinArray(sourc_addr, consultas){} //if consultas.has_key(str(s_addr))
+			var cmdarg string
+			cmdarg := fmt.Sprintf("-D INPUT -p tcp -d %s --dport %s -s %s --sport %s --j REJECT --reject-with tcp-reset", ip1, dest_port.String(), sourc_addr.String(), sourc_port.String())
+			cmd := exec.Command("/sbin/iptables", cmdarg)
 		}
 
 
@@ -159,5 +178,17 @@ func StartMain(){
 	sockad.Addr = GetLocalIPbyte()
 	sockad.Port = 53 //port in python version
 	syscall.Bind(p, &sockad) // Give Current IP
+
+	for true {
+		msg,address,err:= syscall.Recvfrom(p,1024,0)
+		if err != nil {
+			log.Fatal(err)
+		} else {
+			noserv = true
+		}
+		if noserv{
+			//TODO:SAVE
+		}
+	}
 
 }

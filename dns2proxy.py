@@ -247,7 +247,7 @@ def parse_packet(packet):
         ip_header = packet[eth_length:20 + eth_length]
 
         #now unpack t #ccsssccsS4S4
-        iph = unpack('!BBHHHBBH4s4s', ip_header) # order 1.version? ; 2.??? ; 3.!protocol! ; 4.? ; [8]s.addr ; [9].d.addr
+        iph = unpack('!BBHHHBBH4s4s', ip_header) # order [0].version? ; 2.??? ; [6].!protocol! ; 4.? ; [8]s.addr ; [9].d.addr
 
         version_ihl = iph[0]
         #version = version_ihl >> 4
@@ -276,7 +276,6 @@ def parse_packet(packet):
             #            acknowledgement = tcph[3]
             #            doff_reserved = tcph[4]
             #            tcph_length = doff_reserved >> 4
-
 
 
             if consultas.has_key(str(s_addr)):
