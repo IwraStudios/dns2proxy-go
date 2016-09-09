@@ -5,11 +5,10 @@ import (
 	"net"
 	"syscall"
 	"log"
-	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket"
+	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/layers"
 	"C"
-	"encoding/binary"
 )
 
 //import "./pcap-master/pcap"
@@ -80,7 +79,7 @@ func ThreadParsePacket(pack gopacket.Packet){
 		length := ip.Length
 		tcp := pack.Layer(layers.LayerTypeTCP)
 		if tcp != nil {
-
+			
 		}
 
 
@@ -133,7 +132,7 @@ func GetActiveInterface() string  {
 		// check the address type and if it is not a loopback the display it
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
-				return addr.String()
+				return address.String()
 			}
 		}
 	}
