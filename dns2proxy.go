@@ -87,17 +87,17 @@ func ThreadParsePacket(pack gopacket.Packet){
 	if ipLayer != nil {
 		ip, _ := ipLayer.(*layers.IPv4)
 		tcp := ipLayer.(*layers.TCP)
-		prot := ip.Protocol
+		/*prot := ip.Protocol
 		version := ip.Version
 		length := ip.Length
-		dest_addr := ip.DstIP
+		dest_addr := ip.DstIP */
 		sourc_addr := ip.SrcIP
 		sourc_port := tcp.SrcPort
 		dest_port := tcp.DstPort
 		if tcp != nil {
 			//if IPinArray(sourc_addr, consultas){} //if consultas.has_key(str(s_addr))
 			var cmdarg string
-			cmdarg := fmt.Sprintf("-D INPUT -p tcp -d %s --dport %s -s %s --sport %s --j REJECT --reject-with tcp-reset", ip1, dest_port.String(), sourc_addr.String(), sourc_port.String())
+			cmdarg = fmt.Sprintf("-D INPUT -p tcp -d %s --dport %s -s %s --sport %s --j REJECT --reject-with tcp-reset", ip1, dest_port.String(), sourc_addr.String(), sourc_port.String())
 			cmd := exec.Command("/sbin/iptables", cmdarg)
 		}
 
@@ -147,7 +147,7 @@ func GetActiveInterface() string  {
 	if err != nil {
 		return "" //Might want to change that in the future
 	}
-	for addr, address := range addrs {
+	for _, address := range addrs {
 		// check the address type and if it is not a loopback the display it
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
@@ -155,6 +155,11 @@ func GetActiveInterface() string  {
 			}
 		}
 	}
+	return nil;
+}
+
+func requestHandler(){
+
 }
 
 func main() {
@@ -162,7 +167,7 @@ func main() {
 }
 
 func DebugPrint(log string){
-	PrintLn(log)
+	println(log)
 }
 
 func StartMain(){
@@ -180,7 +185,7 @@ func StartMain(){
 	syscall.Bind(p, &sockad) // Give Current IP
 
 	for true {
-		msg,address,err:= syscall.Recvfrom(p,1024,0)
+		msg,address,err := syscall.Recvfrom(p,1024,0)
 		if err != nil {
 			log.Fatal(err)
 		} else {
