@@ -10,6 +10,7 @@ import (
 	"github.com/google/gopacket/layers"
 	"C"
 	"os/exec"
+	"container/list"
 )
 
 //import "./pcap-master/pcap"
@@ -38,6 +39,8 @@ var sockad syscall.SockaddrInet4
 var ip1 string= "None"
 var adminip string = "192.168.0.1"
 var noserv bool = false
+var serv_ids list.List
+
 
 func processfiles() {
 	var a net.IP = []byte{74, 125, 136, 108} //Original Contents of nospooffile
@@ -81,6 +84,17 @@ func IPinArray(a net.IP, list []net.IP) bool {
 	}
 	return false
 }
+
+func InterfaceinArray(a interface{}, list []interface{}) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
+
 
 func ThreadParsePacket(pack gopacket.Packet){
 	ipLayer := pack.Layer(layers.LayerTypeIPv4)
@@ -158,7 +172,13 @@ func GetActiveInterface() string  {
 	return nil;
 }
 
-func requestHandler(){
+func requestHandler(address syscall.Sockaddr, message int){
+	if InterfaceinArray(message, serv_ids){
+		return
+		//Already in progress
+	}
+	serv_ids.PushBack(message)
+	//TODO:SAVE
 
 }
 
@@ -171,6 +191,7 @@ func DebugPrint(log string){
 }
 
 func StartMain(){
+	serv_ids = list.New()
 	processfiles()
 	println("hello")
 	println(nospoof[0])
@@ -192,7 +213,8 @@ func StartMain(){
 			noserv = true
 		}
 		if noserv{
-			//TODO:SAVE
+
+			requestHandler(address, msg)
 		}
 	}
 
