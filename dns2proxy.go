@@ -1,19 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"net"
-	"syscall"
-	"log"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/pcap"
-	"github.com/google/gopacket/layers"
 	"C"
-	"os/exec"
 	"container/list"
+	"fmt"
+	"github.com/google/gopacket" //using google's gopacket library
+	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket/pcap"
+	"log"
+	"net"
+	"os/exec"
+	"syscall"
 )
-
-//import "./pcap-master/pcap"
 
 var consultas [10]net.IP
 var spoof [10]net.IP
@@ -36,11 +34,11 @@ var transformfile = "transform.cfg"
 var fakeips [10]net.IP
 var s []string
 var sockad syscall.SockaddrInet4
-var ip1 string= "None"
+var ip1 string = "None"
+var ip2 string = "None"
 var adminip string = "192.168.0.1"
 var noserv bool = false
 var serv_ids list.List
-
 
 func processfiles() {
 	var a net.IP = []byte{74, 125, 136, 108} //Original Contents of nospooffile
@@ -53,25 +51,24 @@ func processfiles() {
 
 }
 
-func ThreadGo(){
+func ThreadGo() {
 	dev := GetActiveInterface() //TODO:Unreliable method change to Csploit input in the release (also for manual config)
-	ca, err := pcap.OpenLive(dev,255,1,0)
+	ca, err := pcap.OpenLive(dev, 255, 1, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
-	bpffilter := fmt.Sprintf("dst host %s and not src host %s and !(tcp dst port 80 or tcp dst port 443) and (not host %s)",ip1, ip1, adminip)
+	bpffilter := fmt.Sprintf("dst host %s and not src host %s and !(tcp dst port 80 or tcp dst port 443) and (not host %s)", ip1, ip1, adminip)
 	ca.SetBPFFilter(bpffilter)
 	defer ca.Close()
 
 	packetSource := gopacket.NewPacketSource(ca, ca.LinkType())
-	for true{
+	for true {
 		pack, err := packetSource.NextPacket()
 		if err != nil {
 			log.Fatal(err)
-		}else {
+		} else {
 			ThreadParsePacket(pack)
 		}
-
 
 	}
 }
@@ -94,9 +91,7 @@ func InterfaceinArray(a interface{}, list []interface{}) bool {
 	return false
 }
 
-
-
-func ThreadParsePacket(pack gopacket.Packet){
+func ThreadParsePacket(pack gopacket.Packet) {
 	ipLayer := pack.Layer(layers.LayerTypeIPv4)
 	if ipLayer != nil {
 		ip, _ := ipLayer.(*layers.IPv4)
@@ -109,14 +104,26 @@ func ThreadParsePacket(pack gopacket.Packet){
 		sourc_port := tcp.SrcPort
 		dest_port := tcp.DstPort
 		if tcp != nil {
-			//if IPinArray(sourc_addr, consultas){} //if consultas.has_key(str(s_addr))
-			var cmdarg string
-			cmdarg = fmt.Sprintf("-D INPUT -p tcp -d %s --dport %s -s %s --sport %s --j REJECT --reject-with tcp-reset", ip1, dest_port.String(), sourc_addr.String(), sourc_port.String())
-			cmd := exec.Command("/sbin/iptables", cmdarg)
+			if IPinArray(sourc_addr, consultas) {
+				//if consultas.has_key(str(s_addr))
+				var cmdarg string
+
+				cmdarg = fmt.Sprintf("%s %s %s %s", ip2, dest_port.String(), sourc_addr.String(), dest_port.String())
+				cmd := exec.Command("sh ./IPBouncer.sh", cmdarg)
+				err := cmd.Run()
+				ErrorHandler(err)
+
+				cmdarg = fmt.Sprintf("-D INPUT -p tcp -d %s --dport %s -s %s --sport %s --j REJECT --reject-with tcp-reset", ip1, dest_port.String(), sourc_addr.String(), sourc_port.String())
+				cmd = exec.Command("/sbin/iptables", cmdarg)
+				err = cmd.Run()
+				ErrorHandler(err)
+
+				cmdarg = fmt.Sprintf("-A INPUT -p tcp -d %s --dport %s -s %s --sport %s --j REJECT --reject-with tcp-reset", ip1, dest_port.String(), sourc_addr.String(), sourc_port.String())
+				cmd = exec.Command("/sbin/iptables", cmdarg)
+				err = cmd.Run()
+				ErrorHandler(err)
+			}
 		}
-
-
-
 
 	}
 
@@ -137,8 +144,8 @@ func GetLocalIPString() string {
 	}
 	return ""
 }
-func GetLocalIPbyte() [4]byte{
-	var b [4]byte;
+func GetLocalIPbyte() [4]byte {
+	var b [4]byte
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return b //Might want to change that in the future
@@ -156,7 +163,7 @@ func GetLocalIPbyte() [4]byte{
 	return b
 }
 
-func GetActiveInterface() string  {
+func GetActiveInterface() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return "" //Might want to change that in the future
@@ -169,11 +176,11 @@ func GetActiveInterface() string  {
 			}
 		}
 	}
-	return nil;
+	return nil
 }
 
-func requestHandler(address syscall.Sockaddr, message int){
-	if InterfaceinArray(message, serv_ids){
+func requestHandler(address syscall.Sockaddr, message int) {
+	if InterfaceinArray(message, serv_ids) {
 		return
 		//Already in progress
 	}
@@ -186,33 +193,38 @@ func main() {
 	StartMain()
 }
 
-func DebugPrint(log string){
+func DebugPrint(log string) {
 	println(log)
 }
+func ErrorHandler(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
 
-func StartMain(){
+}
+func StartMain() {
 	serv_ids = list.New()
 	processfiles()
 	println("hello")
 	println(nospoof[0])
 	//var sig = syscall.Signal()
-	p, err:= syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, 0)
+	p, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
-	syscall.SetsockoptInt(p,syscall.SOL_SOCKET, syscall.SO_REUSEADDR,1)
+	syscall.SetsockoptInt(p, syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
 	sockad.Addr = GetLocalIPbyte()
-	sockad.Port = 53 //port in python version
+	sockad.Port = 53         //port in python version
 	syscall.Bind(p, &sockad) // Give Current IP
 
 	for true {
-		msg,address,err := syscall.Recvfrom(p,1024,0)
+		msg, address, err := syscall.Recvfrom(p, 1024, 0)
 		if err != nil {
 			log.Fatal(err)
 		} else {
 			noserv = true
 		}
-		if noserv{
+		if noserv {
 
 			requestHandler(address, msg)
 		}
