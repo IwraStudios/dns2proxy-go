@@ -11,15 +11,16 @@ import (
 	"os/exec"
 	"syscall"
 	"container/list"
+	"encoding/binary"
 )
 
-var consultas []net.IP
-var spoof [10]net.IP
-var dominios [10]net.IP
-var transformation [10]net.IP
-var nospoof [10]net.IP
-var nospoofto [10]net.IP
-var victims [10]net.IP
+var consultas list.List
+var spoof list.List
+var dominios list.List
+var transformation list.List
+var nospoof list.List
+var nospoofto list.List
+var victims list.List
 
 var logreqfile = "dnslog.txt"
 var logsnifffile = "snifflog.txt"
@@ -40,19 +41,35 @@ var adminip string = "192.168.0.1"
 var noserv bool = false
 var serv_ids list.List
 
+type Debug struct {}
+type Utils struct {}
+var util = Utils{}
+var debug = Debug{}
+
 func processfiles() {
+	//TODO: Clear lists
+	util.ClearList(&nospoof)
+
 	var a net.IP = []byte{74, 125, 136, 108} //Original Contents of nospooffile
-	nospoof[0] = a
+	nospoof.PushBack(a)
 
 	//NOTE: skipping Some Files they were empty by default
 
 	var b net.IP = []byte{127, 0, 0, 1} // Don't spoof self
-	nospoofto[0] = b
+	nospoofto.PushBack(b)
 
 }
 
+func (Utils) ClearList(list *list.List)  {
+	for e := list.Front(); e != nil; e = e.Next() {
+		list.Remove(e);
+	}
+
+}
+
+
 func ThreadGo() {
-	dev := GetActiveInterface() //TODO:Unreliable method change to Csploit input in the release (also for manual config)
+	dev := util.GetActiveInterface() //TODO:Unreliable method change to Csploit input in the release (also for manual config)
 	ca, err := pcap.OpenLive(dev, 255, true, 0)
 	if err != nil {
 		log.Fatal(err)
@@ -73,7 +90,7 @@ func ThreadGo() {
 	}
 }
 
-func IPinArray(a net.IP, list []net.IP) bool {
+func (Utils)IPinArray(a net.IP, list []net.IP) bool {
 	for _, b := range list {
 		if b.Equal(a) {
 			return true
@@ -82,13 +99,19 @@ func IPinArray(a net.IP, list []net.IP) bool {
 	return false
 }
 
-func InterfaceinArray(a interface{}, list list.List) bool {
+func (Utils) InterfaceinArray(a interface{}, list list.List) bool {
 	for e := list.Front(); e != nil; e = e.Next() {
 		if(e.Value == a){
 			return  true;
 		}
 	}
 	return false
+}
+
+func (Utils)IntToByteArray(input uint32) []byte{
+	ouput := make([]byte, 4)
+	binary.LittleEndian.PutUint32(ouput, input)
+	return  ouput
 }
 
 func ThreadParsePacket(pack gopacket.Packet) {
@@ -104,24 +127,24 @@ func ThreadParsePacket(pack gopacket.Packet) {
 		sourc_port := tcp.SrcPort
 		dest_port := tcp.DstPort
 		if tcp != nil {
-			if IPinArray(sourc_addr, consultas) {
+			if util.InterfaceinArray(sourc_addr, consultas) {
 				//if consultas.has_key(str(s_addr))
 				var cmdarg string
 
 				cmdarg = fmt.Sprintf("%s %s %s %s", ip2, dest_port.String(), sourc_addr.String(), dest_port.String())
 				cmd := exec.Command("sh ./IPBouncer.sh", cmdarg)
 				err := cmd.Run()
-				ErrorHandler(err)
+				debug.ErrorHandler(err)
 
 				cmdarg = fmt.Sprintf("-D INPUT -p tcp -d %s --dport %s -s %s --sport %s --j REJECT --reject-with tcp-reset", ip1, dest_port.String(), sourc_addr.String(), sourc_port.String())
 				cmd = exec.Command("/sbin/iptables", cmdarg)
 				err = cmd.Run()
-				ErrorHandler(err)
+				debug.ErrorHandler(err)
 
 				cmdarg = fmt.Sprintf("-A INPUT -p tcp -d %s --dport %s -s %s --sport %s --j REJECT --reject-with tcp-reset", ip1, dest_port.String(), sourc_addr.String(), sourc_port.String())
 				cmd = exec.Command("/sbin/iptables", cmdarg)
 				err = cmd.Run()
-				ErrorHandler(err)
+				debug.ErrorHandler(err)
 			}
 		}
 
@@ -129,7 +152,7 @@ func ThreadParsePacket(pack gopacket.Packet) {
 
 }
 
-func GetLocalIPString() string {
+func (Utils)GetLocalIPString() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return "" //Might want to change that in the future
@@ -144,7 +167,7 @@ func GetLocalIPString() string {
 	}
 	return ""
 }
-func GetLocalIPbyte() [4]byte {
+func (Utils)GetLocalIPbyte() [4]byte {
 	var b [4]byte
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -163,7 +186,7 @@ func GetLocalIPbyte() [4]byte {
 	return b
 }
 
-func GetActiveInterface() string {
+func (Utils)GetActiveInterface() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return "" //Might want to change that in the future
@@ -180,7 +203,7 @@ func GetActiveInterface() string {
 }
 
 func requestHandler(address syscall.Sockaddr, message int) {
-	if InterfaceinArray(message, serv_ids) {
+	if util.InterfaceinArray(message, serv_ids) {
 		return
 		//Already in progress
 	}
@@ -193,10 +216,10 @@ func main() {
 	StartMain()
 }
 
-func DebugPrint(log string) {
+func (Debug)DebugPrint(log string) {
 	println(log)
 }
-func ErrorHandler(err error) {
+func (Debug)ErrorHandler(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -205,20 +228,20 @@ func ErrorHandler(err error) {
 func StartMain() {
 	processfiles()
 	println("hello")
-	println(nospoof[0])
+	println(nospoof.Front())
 	//var sig = syscall.Signal()
 	p, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
 	syscall.SetsockoptInt(p, syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
-	sockad.Addr = GetLocalIPbyte()
+	sockad.Addr = util.GetLocalIPbyte()
 	sockad.Port = 53         //port in python version
 	syscall.Bind(p, &sockad) // Give Current IP
 
 	for true {
-		msg, address, err := syscall.Recvfrom(p, 1024, 0) // TODO: byte-type of 1024
-		if err != nil {
+		msg, address, err := syscall.Recvfrom(p, util.IntToByteArray(1024), 0) // TODO: byte-array-type of 1024??
+		if err != nil {								// TODO: Fix Argument issue
 			log.Fatal(err)
 		} else {
 			noserv = true
