@@ -2,7 +2,6 @@ package main
 
 import (
 	"C"
-	"container/list"
 	"fmt"
 	"github.com/google/gopacket" //using google's gopacket library
 	"github.com/google/gopacket/layers"
@@ -11,9 +10,10 @@ import (
 	"net"
 	"os/exec"
 	"syscall"
+	"container/list"
 )
 
-var consultas [10]net.IP
+var consultas []net.IP
 var spoof [10]net.IP
 var dominios [10]net.IP
 var transformation [10]net.IP
@@ -53,7 +53,7 @@ func processfiles() {
 
 func ThreadGo() {
 	dev := GetActiveInterface() //TODO:Unreliable method change to Csploit input in the release (also for manual config)
-	ca, err := pcap.OpenLive(dev, 255, 1, 0)
+	ca, err := pcap.OpenLive(dev, 255, true, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -75,17 +75,17 @@ func ThreadGo() {
 
 func IPinArray(a net.IP, list []net.IP) bool {
 	for _, b := range list {
-		if b == a {
+		if b.Equal(a) {
 			return true
 		}
 	}
 	return false
 }
 
-func InterfaceinArray(a interface{}, list []interface{}) bool {
-	for _, b := range list {
-		if b == a {
-			return true
+func InterfaceinArray(a interface{}, list list.List) bool {
+	for e := list.Front(); e != nil; e = e.Next() {
+		if(e.Value == a){
+			return  true;
 		}
 	}
 	return false
@@ -176,7 +176,7 @@ func GetActiveInterface() string {
 			}
 		}
 	}
-	return nil
+	return ""
 }
 
 func requestHandler(address syscall.Sockaddr, message int) {
@@ -203,7 +203,6 @@ func ErrorHandler(err error) {
 
 }
 func StartMain() {
-	serv_ids = list.New()
 	processfiles()
 	println("hello")
 	println(nospoof[0])
@@ -218,7 +217,7 @@ func StartMain() {
 	syscall.Bind(p, &sockad) // Give Current IP
 
 	for true {
-		msg, address, err := syscall.Recvfrom(p, 1024, 0)
+		msg, address, err := syscall.Recvfrom(p, 1024, 0) // TODO: byte-type of 1024
 		if err != nil {
 			log.Fatal(err)
 		} else {
