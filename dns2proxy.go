@@ -6,12 +6,16 @@ import (
 	"github.com/google/gopacket" //using google's gopacket library
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
+	"github.com/miekg/dns"
+	"strings"
 	"log"
 	"net"
 	"os/exec"
 	"syscall"
 	"container/list"
 	"encoding/binary"
+	"strconv"
+	"errors"
 )
 
 var consultas list.List
@@ -35,8 +39,8 @@ var transformfile = "transform.cfg"
 var fakeips [10]net.IP
 var s []string
 var sockad syscall.SockaddrInet4
-var ip1 string = "None"
-var ip2 string = "None"
+var ip1 string = ""
+var ip2 string = ""
 var adminip string = "192.168.0.1"
 var noserv bool = false
 var serv_ids list.List
@@ -49,6 +53,10 @@ var debug = Debug{}
 func processfiles() {
 	//TODO: Clear lists
 	util.ClearList(&nospoof)
+	util.ClearList(&nospoofto)
+	util.ClearList(&victims)
+	util.ClearList(&dominios)
+	util.ClearList(&spoof)
 
 	var a net.IP = []byte{74, 125, 136, 108} //Original Contents of nospooffile
 	nospoof.PushBack(a)
@@ -67,6 +75,7 @@ func (Utils) ClearList(list *list.List)  {
 
 }
 
+//// TCP/IP part
 
 func ThreadGo() {
 	dev := util.GetActiveInterface() //TODO:Unreliable method change to Csploit input in the release (also for manual config)
@@ -207,10 +216,41 @@ func requestHandler(address syscall.Sockaddr, message int) {
 		return
 		//Already in progress
 	}
-	serv_ids.PushBack(message)
+	serv_ids.PushBack(message) //Change
 	//TODO:SAVE
 
 }
+
+//// DNS part
+func PTR_qry(msg dns.Msg){
+	que := msg.Question
+	iparp := strings.Split(que[0].String(),	" ")[0]
+	debug.DebugPrint(strconv.Itoa(len(que))+ " questions.")
+	debug.DebugPrint("Hosts" + iparp)
+	//resp := make() //TODO: Make response function
+}
+
+func Make_Response(qry dns.Msg,id int, RCODE int) dns.Msg {
+	resp := dns.Msg{}
+	if qry.String() == resp.String() && id == 0{
+		debug.ErrorHandler(errors.New("bad use of make_response"))
+	}
+	if qry.String() == resp.String() {
+		resp.Id = uint16(id)
+		resp.Response = true // QR = 1
+		if(RCODE != 1){
+			debug.DebugPrint("RCODE != 1	:241")
+		}
+	}else{
+		resp.SetReply(&qry)
+		resp.RecursionAvailable = true //RA
+		resp.Authoritative = true //AA
+		resp.SetRcode(&qry, RCODE)
+	}
+	return  resp
+}
+
+//// Main Part
 
 func main() {
 	StartMain()
@@ -225,12 +265,15 @@ func (Debug)ErrorHandler(err error) {
 	}
 
 }
+
+
 func StartMain() {
 	processfiles()
 	println("hello")
 	println(nospoof.Front())
 	//var sig = syscall.Signal()
-	p, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, 0)
+
+	p, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, 0) //TODO: replace with high-level version (if possible)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -241,7 +284,7 @@ func StartMain() {
 
 	for true {
 		msg, address, err := syscall.Recvfrom(p, util.IntToByteArray(1024), 0) // TODO: byte-array-type of 1024??
-		if err != nil {								// TODO: Fix Argument issue
+		if err != nil {
 			log.Fatal(err)
 		} else {
 			noserv = true
