@@ -7,13 +7,13 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/miekg/dns"
-	"strings"
-	"log"
-	"net"
-	"os/exec"
-	"syscall"
 	"container/list"
+	"net"
+	"syscall"
+	"log"
 	"encoding/binary"
+	"os/exec"
+	"strings"
 	"strconv"
 	"errors"
 )
@@ -222,14 +222,29 @@ func requestHandler(address syscall.Sockaddr, message int) {
 }
 
 //// DNS part
+
+func respuestas(name string, typ string) []string  { //Don't know exact output yet; suspect net.IP | net.IPv4
+
+	conn, err := net.LookupIP(name) //Not sure if Golang needs typ or something else
+
+}
+
 func PTR_qry(msg dns.Msg){
 	que := msg.Question
+	tmp := []dns.RR{}
 	iparp := strings.Split(que[0].String(),	" ")[0]
 	debug.DebugPrint(strconv.Itoa(len(que))+ " questions.")
 	debug.DebugPrint("Hosts" + iparp)
 	//resp := make() //TODO: Make response function
+	resp := Make_Response(msg, 0, 0)
+	hosts := respuestas()
+	for i := 0; i < len(hosts); i++{
+		rr, err := dns.NewRR(iparp + "1000 IN PTR 10" + hosts[i])
+		tmp[i] = rr
+	}
 }
 
+//TODO: Defualt should be {null, null, 0} proposed {empty,0,0}
 func Make_Response(qry dns.Msg,id int, RCODE int) dns.Msg {
 	resp := dns.Msg{}
 	if qry.String() == resp.String() && id == 0{
@@ -239,14 +254,14 @@ func Make_Response(qry dns.Msg,id int, RCODE int) dns.Msg {
 		resp.Id = uint16(id)
 		resp.Response = true // QR = 1
 		if(RCODE != 1){
-			debug.DebugPrint("RCODE != 1	:241")
+			debug.ErrorHandler(errors.New("RCODE !=1"))
 		}
 	}else{
 		resp.SetReply(&qry)
-		resp.RecursionAvailable = true //RA
-		resp.Authoritative = true //AA
-		resp.SetRcode(&qry, RCODE)
 	}
+	resp.RecursionAvailable = true //RA
+	resp.Authoritative = true //AA
+	resp.SetRcode(&qry, RCODE)
 	return  resp
 }
 
