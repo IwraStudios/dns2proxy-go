@@ -211,14 +211,59 @@ func (Utils)GetActiveInterface() string {
 	return ""
 }
 
-func requestHandler(address syscall.Sockaddr, message int) {
+func requestHandler(address syscall.Sockaddr, message []byte) {
 	if util.InterfaceinArray(message, serv_ids) {
 		return
 		//Already in progress
 	}
-	serv_ids.PushBack(message) //Change
-	//TODO:SAVE
+	serv_ids.PushBack(message) //Change; Make unique id
+	debug.DebugPrint("Client IP:" + address)
+	msg := dns.Msg{}
+	err := msg.Unpack(message)
+	qs := msg.Question
+	resp := dns.Msg{}
+	if err != nil{
+		debug.DebugPrint("got ??")
+		resp = Make_Response(msg, 0, 2)
+		debug.DebugPrint("resp ="  +resp.String())
+		//s.seto(resp, addr)
+		return;
+	}
+	op := msg.Opcode()
+	if op == 0{
+		if len(qs) > 0{
+			q := qs[0]
+			debug.DebugPrint("Request:" + q.String())
+			//TODO: Save question to log
+			switch (q.Qtype) {
+			case dns.TypeA:
+				//TODO: std stuff
+				break;
+			case dns.TypePTR:
 
+				break;
+			case dns.TypeMX:
+
+				break;
+			case dns.TypeTXT:
+
+				break;
+			case dns.TypeAAAA:
+
+				break;
+			default:
+				debug.ErrorHandler(errors.New("Not Impl"))
+				return;
+			}
+
+		}else {
+			debug.ErrorHandler(errors.New("Not Impl"))
+			return;
+		}
+	}
+	if resp != nil {
+		//SendTo
+	}
 }
 
 //// DNS part
@@ -298,7 +343,10 @@ func StartMain() {
 	syscall.Bind(p, &sockad) // Give Current IP
 
 	for true {
-		msg, address, err := syscall.Recvfrom(p, util.IntToByteArray(1024), 0) // TODO: byte-array-type of 1024??
+		conn, err := net.ListenPacket("udp", ":53")
+		//msg, address, err := syscall.Recvfrom(p, util.IntToByteArray(1024), 0) // TODO: byte-array-type of 1024??
+		var buf [1024]byte
+		n, address, err := conn.ReadFrom(buf[0:])
 		if err != nil {
 			log.Fatal(err)
 		} else {
@@ -306,7 +354,7 @@ func StartMain() {
 		}
 		if noserv {
 
-			requestHandler(address, msg)
+			requestHandler(address, n)
 		}
 	}
 
