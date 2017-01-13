@@ -8,5 +8,3 @@ This is not an ready to use project/code, this is this in development
 * added some documentation and refrence points to the original code
 * making it a "job" module for use in cSploit2
 * adding a new and better roadmap
-
-Note: dns2proxy.py will be removed when we are done with the development of dns2proxy-go
