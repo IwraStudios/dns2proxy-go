@@ -268,7 +268,7 @@ func requestHandler(address syscall.Sockaddr, message []byte) {
 
 //// DNS part
 
-func respuestas(name string, typ string) []string  { //Don't know exact output yet; suspect net.IP | net.IPv4
+func respuestas(name []string, typ string) []string  { //Don't know exact output yet; suspect net.IP | net.IPv4
 
 	conn, err := net.LookupIP(name) //Not sure if Golang needs typ or something else
 
@@ -276,17 +276,38 @@ func respuestas(name string, typ string) []string  { //Don't know exact output y
 
 func PTR_qry(msg dns.Msg){
 	que := msg.Question
-	tmp := []dns.RR{}
 	iparp := strings.Split(que[0].String(),	" ")[0]
 	debug.DebugPrint(strconv.Itoa(len(que))+ " questions.")
 	debug.DebugPrint("Hosts" + iparp)
-	//resp := make() //TODO: Make response function
 	resp := Make_Response(msg, 0, 0)
-	hosts := respuestas()
+	hosts := respuestas(iparp[:-1], "PTR")
+	//TODO: isinstance()
 	for i := 0; i < len(hosts); i++{
 		rr, err := dns.NewRR(iparp + "1000 IN PTR 10" + hosts[i])
-		tmp[i] = rr
+		resp.Answer[i] = rr //TODO: change to append type
+		//TODO:Find PTR resolver
 	}
+}
+
+func MX_qry(msg dns.Msg){
+	que := msg.Question
+	iparp := strings.Split(que[0].String(),	" ")[0]
+	debug.DebugPrint(strconv.Itoa(len(que))+ " questions.")
+	debug.DebugPrint("Hosts" + iparp)
+	resp := Make_Response(msg, 0, 3)
+	return resp
+	//Disabled in Original
+}
+
+func TXT_qry(msg dns.Msg){
+	que := msg.Question
+	iparp := strings.Split(que[0].String(),	" ")[0]
+	debug.DebugPrint(strconv.Itoa(len(que))+ " questions.")
+	debug.DebugPrint("Host: " + iparp)
+	resp := Make_Response(msg, 0, 0)
+	host := iparp[:-1]
+	//TODO:SAVE
+
 }
 
 //TODO: Defualt should be {null, null, 0} proposed {empty,0,0}
