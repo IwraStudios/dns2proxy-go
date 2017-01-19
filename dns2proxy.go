@@ -217,19 +217,19 @@ func requestHandler(address syscall.Sockaddr, message []byte) {
 		//Already in progress
 	}
 	serv_ids.PushBack(message) //Change; Make unique id
-	debug.DebugPrint("Client IP:" + address)
+	//debug.DebugPrint("Client IP:" + address)
 	msg := dns.Msg{}
 	err := msg.Unpack(message)
 	qs := msg.Question
-	resp := dns.Msg{}
+	resp := interface{}(nil)
 	if err != nil{
 		debug.DebugPrint("got ??")
 		resp = Make_Response(msg, 0, 2)
-		debug.DebugPrint("resp ="  +resp.String())
+		debug.DebugPrint("resp ="  + resp.(dns.Msg).String())
 		//s.seto(resp, addr)
 		return;
 	}
-	op := msg.Opcode()
+	op := msg.Opcode
 	if op == 0{
 		if len(qs) > 0{
 			q := qs[0]
@@ -261,17 +261,18 @@ func requestHandler(address syscall.Sockaddr, message []byte) {
 			return;
 		}
 	}
-	if resp != nil {
-		//SendTo
+	if resp != interface{}(nil) {
+
+		//TODO: SendTo
 	}
 }
 
 //// DNS part
 
 func respuestas(name []string, typ string) []string  { //Don't know exact output yet; suspect net.IP | net.IPv4
-
-	conn, err := net.LookupIP(name) //Not sure if Golang needs typ or something else
-
+	var a []string
+	//conn, err := net.LookupIP(name) //Not sure if Golang needs typ or something else
+ return a
 }
 
 func PTR_qry(msg dns.Msg){
@@ -289,7 +290,7 @@ func PTR_qry(msg dns.Msg){
 	}
 }
 
-func MX_qry(msg dns.Msg){
+func MX_qry(msg dns.Msg) dns.Msg{
 	que := msg.Question
 	iparp := strings.Split(que[0].String(),	" ")[0]
 	debug.DebugPrint(strconv.Itoa(len(que))+ " questions.")
@@ -299,14 +300,31 @@ func MX_qry(msg dns.Msg){
 	//Disabled in Original
 }
 
-func TXT_qry(msg dns.Msg){
+func TXT_qry(msg dns.Msg) dns.Msg{
 	que := msg.Question
 	iparp := strings.Split(que[0].String(),	" ")[0]
 	debug.DebugPrint(strconv.Itoa(len(que))+ " questions.")
 	debug.DebugPrint("Host: " + iparp)
 	resp := Make_Response(msg, 0, 0)
 	host := iparp[:-1]
-	//TODO:SAVE
+	punto := strings.Index(host,".")
+	dominio := host[punto:]
+	host = '.'+host
+	spfresponse := ' '
+	if util.InterfaceinArray(dominio, dominios) || util.InterfaceinArray(host, dominios){
+		ttl := 1
+		debug.DebugPrint("Alert domain! (TXT) ID: " + host  + '\n')
+		//TODO: save_req
+		if util.InterfaceinArray(host, dominios){
+			spfresponse = "v=spf1 a:mail"+host+"/24 mx -all "
+		}
+		if(util.InterfaceinArray(dominio,dominios)){
+			spfresponse = "v=spf1 a:mail"+dominio+"/24 mx -all "
+		}
+		debug.DebugPrint("Responding with SPF = " + spfresponse)
+		//TODO:SAVE
+
+	}
 
 }
 
