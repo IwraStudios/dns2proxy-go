@@ -61,7 +61,7 @@ func processfiles() {
 	var a net.IP = []byte{74, 125, 136, 108} //Original Contents of nospooffile
 	nospoof.PushBack(a)
 
-	//NOTE: skipping Some Files they were empty by default
+	//NOTE: skipping Some Files they were empty by default; TODO: Needs future implementation
 
 	var b net.IP = []byte{127, 0, 0, 1} // Don't spoof self
 	nospoofto.PushBack(b)
@@ -383,7 +383,7 @@ func StartMain() {
 
 	for true {
 		conn, err := net.ListenPacket("udp", ":53")
-		//msg, address, err := syscall.Recvfrom(p, util.IntToByteArray(1024), 0) // TODO: byte-array-type of 1024??
+		//msg, address, err := syscall.Recvfrom(p, util.IntToByteArray(1024), 0)
 		var buf [1024]byte
 		n, address, err := conn.ReadFrom(buf[0:])
 		if err != nil {
