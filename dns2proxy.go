@@ -211,7 +211,7 @@ func (Utils)GetActiveInterface() string {
 	return ""
 }
 
-func requestHandler(address syscall.Sockaddr, message []byte) {
+func requestHandler(address net.Addr, message []byte) {
 	if util.InterfaceinArray(message, serv_ids) {
 		return
 		//Already in progress
@@ -225,7 +225,7 @@ func requestHandler(address syscall.Sockaddr, message []byte) {
 	if err != nil{
 		debug.DebugPrint("got ??")
 		resp = Make_Response(msg, 0, 2)
-		debug.DebugPrint("resp ="  + resp.(dns.Msg).String())
+		debug.DebugPrint("resp ="  ) //TODO:+ resp
 		//s.seto(resp, addr)
 		return;
 	}
@@ -269,7 +269,7 @@ func requestHandler(address syscall.Sockaddr, message []byte) {
 
 //// DNS part
 
-func respuestas(name []string, typ string) []string  { //Don't know exact output yet; suspect net.IP | net.IPv4
+func respuestas(name string, typ string) []string  { //Don't know exact output yet; suspect net.IP | net.IPv4
 	var a []string
 	//conn, err := net.LookupIP(name) //Not sure if Golang needs typ or something else
  return a
@@ -281,10 +281,11 @@ func PTR_qry(msg dns.Msg){
 	debug.DebugPrint(strconv.Itoa(len(que))+ " questions.")
 	debug.DebugPrint("Hosts" + iparp)
 	resp := Make_Response(msg, 0, 0)
-	hosts := respuestas(iparp[:-1], "PTR")
+	hosts := respuestas(iparp[:len(iparp)-1], "PTR")
 	//TODO: isinstance()
 	for i := 0; i < len(hosts); i++{
 		rr, err := dns.NewRR(iparp + "1000 IN PTR 10" + hosts[i])
+		debug.ErrorHandler(err)
 		resp.Answer[i] = rr //TODO: change to append type
 		//TODO:Find PTR resolver
 	}
@@ -305,15 +306,15 @@ func TXT_qry(msg dns.Msg) dns.Msg{
 	iparp := strings.Split(que[0].String(),	" ")[0]
 	debug.DebugPrint(strconv.Itoa(len(que))+ " questions.")
 	debug.DebugPrint("Host: " + iparp)
-	resp := Make_Response(msg, 0, 0)
-	host := iparp[:-1]
+	//resp := Make_Response(msg, 0, 0)
+	host := iparp[:len(iparp)-1]
 	punto := strings.Index(host,".")
 	dominio := host[punto:]
-	host = '.'+host
-	spfresponse := ' '
+	host = "."+host
+	spfresponse := " "
 	if util.InterfaceinArray(dominio, dominios) || util.InterfaceinArray(host, dominios){
-		ttl := 1
-		debug.DebugPrint("Alert domain! (TXT) ID: " + host  + '\n')
+		//ttl := 1
+		debug.DebugPrint("Alert domain! (TXT) ID: " + host)
 		//TODO: save_req
 		if util.InterfaceinArray(host, dominios){
 			spfresponse = "v=spf1 a:mail"+host+"/24 mx -all "
@@ -325,7 +326,7 @@ func TXT_qry(msg dns.Msg) dns.Msg{
 		//TODO:SAVE
 
 	}
-
+	return dns.Msg{}
 }
 
 //TODO: Defualt should be {null, null, 0} proposed {empty,0,0}
@@ -383,9 +384,12 @@ func StartMain() {
 
 	for true {
 		conn, err := net.ListenPacket("udp", ":53")
+		debug.ErrorHandler(err)
 		//msg, address, err := syscall.Recvfrom(p, util.IntToByteArray(1024), 0)
-		var buf [1024]byte
-		n, address, err := conn.ReadFrom(buf[0:])
+		//var buf [1024]byte
+		buf := make([]byte, 1024)
+		_, address, err := conn.ReadFrom(buf)
+
 		if err != nil {
 			log.Fatal(err)
 		} else {
@@ -393,7 +397,7 @@ func StartMain() {
 		}
 		if noserv {
 
-			requestHandler(address, n)
+			requestHandler(address, buf)
 		}
 	}
 
