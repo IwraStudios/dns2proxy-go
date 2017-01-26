@@ -61,7 +61,7 @@ func processfiles() {
 	var a net.IP = []byte{74, 125, 136, 108} //Original Contents of nospooffile
 	nospoof.PushBack(a)
 
-	//NOTE: skipping Some Files they were empty by default
+	//NOTE: skipping Some Files they were empty by default; TODO: Needs future implementation
 
 	var b net.IP = []byte{127, 0, 0, 1} // Don't spoof self
 	nospoofto.PushBack(b)
@@ -268,9 +268,9 @@ func requestHandler(address syscall.Sockaddr, message []byte) {
 
 //// DNS part
 
-func respuestas(name []string, typ string) []string  { //Don't know exact output yet; suspect net.IP | net.IPv4
+func respuestas(name []string, typ string) []string  { 
 
-	conn, err := net.LookupIP(name) //Not sure if Golang needs typ or something else
+	conn, err := net.LookupIP(name) //TODO: REPLACE
 
 }
 
@@ -306,6 +306,11 @@ func TXT_qry(msg dns.Msg){
 	debug.DebugPrint("Host: " + iparp)
 	resp := Make_Response(msg, 0, 0)
 	host := iparp[:-1]
+	
+	i := strings.Index(host, ".")
+	dominio := host[i:]
+	host = "."+host
+	spfresponse := ""
 	//TODO:SAVE
 
 }
@@ -365,7 +370,7 @@ func StartMain() {
 
 	for true {
 		conn, err := net.ListenPacket("udp", ":53")
-		//msg, address, err := syscall.Recvfrom(p, util.IntToByteArray(1024), 0) // TODO: byte-array-type of 1024??
+		//msg, address, err := syscall.Recvfrom(p, util.IntToByteArray(1024), 0)
 		var buf [1024]byte
 		n, address, err := conn.ReadFrom(buf[0:])
 		if err != nil {
