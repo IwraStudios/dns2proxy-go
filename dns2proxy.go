@@ -275,7 +275,7 @@ func respuestas(name string, typ string) []string  { //Don't know exact output y
  return a
 }
 
-func PTR_qry(msg dns.Msg){
+func PTR_qry(msg dns.Msg) dns.Msg{
 	que := msg.Question
 	iparp := strings.Split(que[0].String(),	" ")[0]
 	debug.DebugPrint(strconv.Itoa(len(que))+ " questions.")
@@ -289,6 +289,7 @@ func PTR_qry(msg dns.Msg){
 		resp.Answer[i] = rr //TODO: change to append type
 		//TODO:Find PTR resolver
 	}
+	return dns.Msg{} //TODO: CHANGE
 }
 
 func MX_qry(msg dns.Msg) dns.Msg{
@@ -326,7 +327,7 @@ func TXT_qry(msg dns.Msg) dns.Msg{
 		//TODO:SAVE
 
 	}
-	return dns.Msg{}
+	return dns.Msg{} //TODO: CHANGE
 }
 
 //TODO: Defualt should be {null, null, 0} proposed {empty,0,0}
